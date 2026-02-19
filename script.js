@@ -412,25 +412,40 @@ document.addEventListener('DOMContentLoaded', () => {
             const command = last[0].transcript.toLowerCase().trim();
             voiceNavStatus.textContent = `Heard: "${command}"`;
 
-            if (command.includes('scroll down')) {
-                window.scrollBy({ top: 500, behavior: 'smooth' });
-            } else if (command.includes('scroll up')) {
-                window.scrollBy({ top: -500, behavior: 'smooth' });
-            } else if (command.includes('go to bottom') || command.includes('bottom')) {
+            // Regex for robust matching
+            const isCommand = (regex) => regex.test(command);
+
+            if (isCommand(/scroll down|move down|go down|page down/)) {
+                window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });
+                voiceNavStatus.textContent = '⬇️ Scrolling down...';
+            } else if (isCommand(/scroll up|move up|go up|page up/)) {
+                window.scrollBy({ top: -window.innerHeight * 0.8, behavior: 'smooth' });
+                voiceNavStatus.textContent = '⬆️ Scrolling up...';
+            } else if (isCommand(/go to bottom|scroll to bottom|bottom of page|footer/)) {
                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            } else if (command.includes('go to top') || command.includes('top')) {
+                voiceNavStatus.textContent = '⬇️ Going to bottom...';
+            } else if (isCommand(/go to top|scroll to top|top of page|header/)) {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                voiceNavStatus.textContent = '⬆️ Going to top...';
+            } else if (isCommand(/stop listening|stop voice|turn off voice/)) {
+                // Handled by voiceNavBtn click simulation or direct stop
+                voiceNavBtn.click();
             } else {
+                let foundFn = false;
                 for (const [key, selector] of Object.entries(voiceNavSections)) {
-                    if (command.includes(key)) {
+                    if (command.includes(key)) { // Keep includes for section names as they are specific
                         const el = document.querySelector(selector);
                         if (el) {
                             el.scrollIntoView({ behavior: 'smooth' });
                             voiceNavStatus.textContent = `✅ Navigated to "${key}"`;
                             trackEvent('voice_navigation', 'nav_command', { command: key });
+                            foundFn = true;
                         }
                         break;
                     }
+                }
+                if (!foundFn) {
+                    voiceNavStatus.textContent = `❓ Unknown command: "${command}"`;
                 }
             }
         };
