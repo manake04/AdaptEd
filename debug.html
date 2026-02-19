@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permission Debugger</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            background: #222;
+            color: #fff;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #log {
+            background: #000;
+            padding: 10px;
+            margin-top: 20px;
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            color: #0f0;
+        }
+
+        .error {
+            color: #f55;
+        }
+
+        .warn {
+            color: #ff0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🛠️ Simple Permission Debugger</h1>
+    <p>Use this page to test if your browser/OS is allowing access at all.</p>
+
+    <div>
+        <button onclick="testMic()">🎤 Test Microphone</button>
+        <button onclick="testCam()">📷 Test Camera</button>
+    </div>
+
+    <div id="log">Logs will appear here...</div>
+
+    <script>
+        function log(msg, type = '') {
+            const el = document.getElementById('log');
+            const line = document.createElement('div');
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            if (type) line.className = type;
+            el.prepend(line);
+        }
+
+        async function testMic() {
+            log('Requesting Microphone access...', 'warn');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                log('✅ Success! Microphone stream obtained.', 'success');
+                log('Stream ID: ' + stream.id);
+                log('Active: ' + stream.active);
+
+                // Stop it immediately
+                stream.getTracks().forEach(t => t.stop());
+                log('Stream stopped.', 'warn');
+            } catch (err) {
+                log('❌ Failed: ' + err.name + ' - ' + err.message, 'error');
+                console.error(err);
+            }
+        }
+
+        async function testCam() {
+            log('Requesting Camera access...', 'warn');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                log('✅ Success! Camera stream obtained.', 'success');
+                log('Stream ID: ' + stream.id);
+                log('Active: ' + stream.active);
+
+                // Create a video element to prove it works
+                const vid = document.createElement('video');
+                vid.srcObject = stream;
+                vid.style.width = '200px';
+                vid.style.border = '2px solid #0f0';
+                vid.autoplay = true;
+                document.body.appendChild(vid);
+                log('Video element created below.', 'success');
+
+                setTimeout(() => {
+                    stream.getTracks().forEach(t => t.stop());
+                    log('Stream stopped after 3 seconds.', 'warn');
+                    vid.remove();
+                }, 3000);
+
+            } catch (err) {
+                log('❌ Failed: ' + err.name + ' - ' + err.message, 'error');
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "adapted-server",
+  "version": "1.0.0",
+  "description": "AdaptEd — Intelligent Accessibility Suite Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "better-sqlite3": "^12.6.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "mongoose": "^8.2.0",
+    "uuid": "^11.0.5"
+  }
+}

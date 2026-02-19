@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-fontsize="normal">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdaptEd — Intelligent Accessibility Suite</title>
+    <meta name="description"
+        content="A professional accessibility platform featuring Speech-to-Text, Text-to-Speech, Adaptive UI, Voice Navigation, Eye Tracking, AI Summarizer, and Auto Captioning.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- MediaPipe Hands for Gesture Recognition -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
+    <!-- WebGazer for Eye Tracking -->
+    <script src="https://webgazer.cs.brown.edu/webgazer.js?" defer></script>
+</head>
+
+<body>
+
+    <!-- Animated Background Orbs -->
+    <div class="bg-glow">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+
+    <!-- ===== Navigation ===== -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <a href="#" class="nav-logo">
+                <span class="logo-icon">⚡</span>
+                AdaptEd
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#features" class="active">Features</a></li>
+                <li><a href="#speech-to-text">Speech</a></li>
+                <li><a href="#text-to-speech">TTS</a></li>
+                <li><a href="#adaptive-ui">Adaptive</a></li>
+                <li><a href="#voice-nav">Voice Nav</a></li>
+                <li><a href="#gesture-recognition">Gestures</a></li>
+                <li><a href="#ai-summarizer">Summarizer</a></li>
+                <li><a href="#auto-caption">Captions</a></li>
+                <li><a href="#features" class="nav-cta">Try Now</a></li>
+            </ul>
+            <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ===== Hero Section ===== -->
+    <section class="hero" id="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="pulse"></span>
+                    AI-Powered Accessibility
+                </div>
+                <h1>
+                    Making the Web<br>
+                    <span class="gradient-text">Accessible for Everyone</span>
+                </h1>
+                <p>An intelligent suite of accessibility tools powered by AI — speech recognition, adaptive interfaces,
+                    eye tracking, and more. Experience the web without barriers.</p>
+                <div class="hero-buttons">
+                    <a href="#features" class="btn btn-primary">
+                        <i class="fas fa-rocket"></i> Explore Features
+                    </a>
+                    <a href="#speech-to-text" class="btn btn-secondary">
+                        <i class="fas fa-play"></i> Live Demos
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <h3>7+</h3>
+                        <p>Accessibility Features</p>
+                    </div>
+                    <div class="hero-stat">
+                        <h3>98%</h3>
+                        <p>Accuracy Rate</p>
+                    </div>
+                    <div class="hero-stat">
+                        <h3>50+</h3>
+                        <p>Languages Supported</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Features Overview Grid ===== -->
+    <section class="features-overview" id="features">
+        <div class="container">
+            <span class="section-label reveal"><i class="fas fa-th"></i> Core Features</span>
+            <h2 class="section-title reveal">Everything You Need</h2>
+            <p class="section-desc reveal">Seven powerful accessibility tools designed to break down digital barriers
+                and create an inclusive web experience.</p>
+
+            <div class="features-grid">
+                <!-- Speech to Text -->
+                <a href="#speech-to-text" class="feature-card reveal"
+                    style="--card-accent: var(--color-speech); --icon-bg: rgba(253,121,168,0.15);">
+                    <div class="feature-icon"><i class="fas fa-microphone" style="color: var(--color-speech);"></i>
+                    </div>
+                    <h3>Speech to Text</h3>
+                    <p>Real-time voice transcription powered by advanced speech recognition. Speak naturally and watch
+                        your words appear instantly.</p>
+                </a>
+
+                <!-- Text to Speech -->
+                <a href="#text-to-speech" class="feature-card reveal"
+                    style="--card-accent: var(--color-tts); --icon-bg: rgba(116,185,255,0.15);">
+                    <div class="feature-icon"><i class="fas fa-volume-up" style="color: var(--color-tts);"></i></div>
+                    <h3>Text to Speech</h3>
+                    <p>Natural-sounding voice synthesis that reads content aloud with adjustable speed, pitch, and
+                        multiple voice options.</p>
+                </a>
+
+                <!-- Adaptive UI -->
+                <a href="#adaptive-ui" class="feature-card reveal"
+                    style="--card-accent: var(--color-adaptive); --icon-bg: rgba(85,239,196,0.15);">
+                    <div class="feature-icon"><i class="fas fa-palette" style="color: var(--color-adaptive);"></i></div>
+                    <h3>Adaptive UI</h3>
+                    <p>Intelligent interface that adapts to your needs — themes, font sizes, contrast modes, and layout
+                        preferences.</p>
+                </a>
+
+                <!-- Voice Navigation -->
+                <a href="#voice-nav" class="feature-card reveal"
+                    style="--card-accent: var(--color-voice); --icon-bg: rgba(255,234,167,0.15);">
+                    <div class="feature-icon"><i class="fas fa-route" style="color: var(--color-voice);"></i></div>
+                    <h3>Voice Navigation</h3>
+                    <p>Navigate the entire website hands-free using voice commands. Say section names or actions to
+                        browse effortlessly.</p>
+                </a>
+
+                <!-- Eye Tracking -->
+                <a href="#eye-tracking" class="feature-card reveal"
+                    style="--card-accent: var(--color-eye); --icon-bg: rgba(225,112,85,0.15);">
+                    <div class="feature-icon"><i class="fas fa-eye" style="color: var(--color-eye);"></i></div>
+                    <h3>Eye Tracking</h3>
+                    <p>Control the interface with your gaze. Eye-tracking technology enables hands-free interaction and
+                        cursor movement.</p>
+                </a>
+
+                <!-- AI Summarizer -->
+                <a href="#ai-summarizer" class="feature-card reveal"
+                    style="--card-accent: var(--color-ai); --icon-bg: rgba(162,155,254,0.15);">
+                    <div class="feature-icon"><i class="fas fa-brain" style="color: var(--color-ai);"></i></div>
+                    <h3>AI Summarizer</h3>
+                    <p>Instantly condense long articles and documents into concise summaries using extractive AI
+                        algorithms.</p>
+                </a>
+
+                <!-- Auto Caption -->
+                <a href="#auto-caption" class="feature-card reveal"
+                    style="--card-accent: var(--color-caption); --icon-bg: rgba(0,206,201,0.15);">
+                    <div class="feature-icon"><i class="fas fa-closed-captioning"
+                            style="color: var(--color-caption);"></i></div>
+                    <h3>Auto Caption</h3>
+                    <p>Automatic real-time captions for audio and video content, making multimedia accessible to
+                        everyone.</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Feature 1: Speech to Text ===== -->
+    <section class="feature-section" id="speech-to-text">
+        <div class="container">
+            <div class="feature-layout">
+                <div class="feature-info reveal">
+                    <span class="feature-badge" style="background: rgba(253,121,168,0.15); color: var(--color-speech);">
+                        <i class="fas fa-microphone"></i> Speech to Text
+                    </span>
+                    <h2>Real-Time Voice Transcription</h2>
+                    <p>Advanced speech recognition converts your spoken words into text instantly. Powered by the Web
+                        Speech API with support for multiple languages and continuous dictation.</p>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="check"
+                                style="background: rgba(253,121,168,0.15); color: var(--color-speech);"><i
+                                    class="fas fa-check"></i></span>
+                            Real-time transcription with interim results
+                        </li>
+                        <li>
+                            <span class="check"
+                                style="background: rgba(253,121,168,0.15); color: var(--color-speech);"><i
+                                    class="fas fa-check"></i></span>
+                            Multi-language support with auto-detection
+                        </li>
+                        <li>
+                            <span class="check"
+                                style="background: rgba(253,121,168,0.15); color: var(--color-speech);"><i
+                                    class="fas fa-check"></i></span>
+                            Continuous listening mode for long dictations
+                        </li>
+                    </ul>
+                </div>
+                <div class="demo-panel stt-demo reveal">
+                    <div class="demo-header">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        <span>speech_recognition.js</span>
+                    </div>
+                    <p class="stt-status" id="sttStatus">Click the mic to start listening</p>
+                    <button class="mic-btn" id="sttMicBtn" aria-label="Start speech recognition">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <div class="transcript-box" id="sttTranscript">
+                        <span style="color: var(--text-muted); font-style: italic;">Your transcribed text will appear
+                            here...</span>
+                    </div>
+                    <button class="speak-btn" id="sttSaveBtn"
+                        style="display:none; margin-top: 12px; background: linear-gradient(135deg, var(--color-speech), #e84393);">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <div class="stt-history" style="margin-top: 16px;">
+                        <h4 style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;"><i
+                                class="fas fa-history"></i> Recent Transcriptions</h4>
+                        <div id="sttHistoryList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Feature 2: Text to Speech ===== -->
+    <section class="feature-section" id="text-to-speech">
+        <div class="container">
+            <div class="feature-layout reverse">
+                <div class="feature-info reveal">
+                    <span class="feature-badge" style="background: rgba(116,185,255,0.15); color: var(--color-tts);">
+                        <i class="fas fa-volume-up"></i> Text to Speech
+                    </span>
+                    <h2>Natural Voice Synthesis</h2>
+                    <p>Transform any text into natural-sounding speech with customizable voices, adjustable speed and
+                        pitch. Perfect for reading articles, documents, or any web content aloud.</p>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="check" style="background: rgba(116,185,255,0.15); color: var(--color-tts);"><i
+                                    class="fas fa-check"></i></span>
+                            Multiple voice options with different accents
+                        </li>
+                        <li>
+                            <span class="check" style="background: rgba(116,185,255,0.15); color: var(--color-tts);"><i
+                                    class="fas fa-check"></i></span>
+                            Adjustable speaking rate and pitch controls
+                        </li>
+                        <li>
+                            <span class="check" style="background: rgba(116,185,255,0.15); color: var(--color-tts);"><i
+                                    class="fas fa-check"></i></span>
+                            Pause, resume, and stop playback controls
+                        </li>
+                    </ul>
+                </div>
+                <div class="demo-panel tts-demo reveal">
+                    <div class="demo-header">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        <span>text_to_speech.js</span>
+                    </div>
+                    <textarea id="ttsInput"
+                        placeholder="Type or paste any text here to hear it spoken aloud...">AdaptEd makes the web accessible for everyone. Our intelligent suite of tools helps break down digital barriers using cutting-edge AI technology.</textarea>
+                    <div class="tts-controls">
+                        <select id="ttsVoice"></select>
+                        <button class="speak-btn" id="ttsSpeakBtn"><i class="fas fa-play"></i> Speak</button>
+                        <button class="speak-btn" id="ttsStopBtn"
+                            style="background: linear-gradient(135deg, #636e72, #2d3436);"><i class="fas fa-stop"></i>
+                            Stop</button>
+                    </div>
+                    <div class="tts-speed">
+                        <span>Speed:</span>
+                        <input type="range" id="ttsRate" min="0.3" max="2" step="0.1" value="1">
+                        <span id="ttsRateValue">1.0x</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Feature 3: Adaptive UI ===== -->
+    <section class="feature-section" id="adaptive-ui">
+        <div class="container">
+            <div class="feature-layout">
+                <div class="feature-info reveal">
+                    <span class="feature-badge"
+                        style="background: rgba(85,239,196,0.15); color: var(--color-adaptive);">
+                        <i class="fas fa-palette"></i> Adaptive UI
+                    </span>
+                    <h2>Interface That Adapts to You</h2>
+                    <p>The Adaptive UI intelligently adjusts the entire interface to match your preferences and
+                        accessibility needs — from color themes to font sizes and contrast levels.</p>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="check"
+                                style="background: rgba(85,239,196,0.15); color: var(--color-adaptive);"><i
+                                    class="fas fa-check"></i></span>
+                            Dark, light, and high-contrast themes
+                        </li>
+                        <li>
+                            <span class="check"
+                                style="background: rgba(85,239,196,0.15); color: var(--color-adaptive);"><i
+                                    class="fas fa-check"></i></span>
+                            Adjustable font sizes for better readability
+                        </li>
+                        <li>
+                            <span class="check"
+                                style="background: rgba(85,239,196,0.15); color: var(--color-adaptive);"><i
+                                    class="fas fa-check"></i></span>
+                            Preferences saved across sessions
+                        </li>
+                    </ul>
+                </div>
+                <div class="demo-panel adaptive-demo reveal">
+                    <div class="demo-header">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        <span>adaptive_ui.js</span>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Color Theme</p>
+                    <div class="theme-options">
+                        <button class="theme-btn dark-btn active" data-theme="dark"><i class="fas fa-moon"></i>
+                            Dark</button>
+                        <button class="theme-btn light-btn" data-theme="light"><i class="fas fa-sun"></i> Light</button>
+                        <button class="theme-btn hc-btn" data-theme="high-contrast"><i class="fas fa-adjust"></i> High
+                            Contrast</button>
+                    </div>
+                    <div class="font-size-controls">
+                        <label>Font Size:</label>
+                        <div class="size-btns">
+                            <button class="size-btn" data-size="small">A<small>−</small></button>
+                            <button class="size-btn active" data-size="normal">A</button>
+                            <button class="size-btn" data-size="large">A<small>+</small></button>
+                            <button class="size-btn" data-size="xlarge">A<small>++</small></button>
+                        </div>
+                    </div>
+                    <div class="adaptive-preview">
+                        <h4>Preview Text</h4>
+                        <p>This text dynamically adjusts based on your selected theme and font size preferences. Notice
+                            how the entire interface updates in real-time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Feature 4: Voice Navigation ===== -->
+    <section class="feature-section" id="voice-nav">
+        <div class="container">
+            <div class="feature-layout reverse">
+                <div class="feature-info reveal">
+                    <span class="feature-badge" style="background: rgba(255,234,167,0.15); color: var(--color-voice);">
+                        <i class="fas fa-route"></i> Voice Navigation
+                    </span>
+                    <h2>Navigate Hands-Free</h2>
+                    <p>Browse the website using only your voice. Speak section names or navigation commands and the page
+                        will scroll to the right place automatically.</p>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="check"
+                                style="background: rgba(255,234,167,0.15); color: var(--color-voice);"><i
+                                    class="fas fa-check"></i></span>
+                            Natural language voice commands
+                        </li>
+                        <li>
+                            <span class="check"
+                                style="background: rgba(255,234,167,0.15); color: var(--color-voice);"><i
+                                    class="fas fa-check"></i></span>
+                            Navigate to any section by saying its name
+                        </li>
+                        <li>
+                            <span class="check"
+                                style="background: rgba(255,234,167,0.15); color: var(--color-voice);"><i
+                                    class="fas fa-check"></i></span>
+                            Scroll up, down, and jump to top or bottom
+                        </li>
+                    </ul>
+                </div>
+                <div class="demo-panel voice-nav-demo reveal">
+                    <div class="demo-header">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        <span>voice_navigation.js</span>
+                    </div>
+                    <p class="voice-status" id="voiceNavStatus">Click to activate voice navigation</p>
+                    <button class="voice-btn" id="voiceNavBtn" aria-label="Start voice navigation">
+                        <i class="fas fa-microphone-alt"></i>
+                    </button>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; text-align: center;">
+                        Available commands:</p>
+                    <div class="voice-commands">
+                        <div class="voice-cmd"><span class="cmd-key">"Go to features"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Open speech"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Scroll down"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Scroll up"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Go to top"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Go to bottom"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Open summarizer"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Open captions"</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Feature 5: Eye Tracking ===== -->
+    <section class="feature-section" id="eye-tracking">
+        <div class="container">
+            <div class="feature-layout">
+                <div class="feature-info reveal">
+                    <span class="feature-badge" style="background: rgba(225,112,85,0.15); color: var(--color-eye);">
+                        <i class="fas fa-eye"></i> Eye Tracking
+                    </span>
+                    <h2>Gaze-Based Interaction</h2>
+                    <p>Use your eyes to interact with the interface. Eye tracking technology detects where you're
+                        looking and moves the cursor accordingly — enabling fully hands-free browsing.</p>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="check" style="background: rgba(225,112,85,0.15); color: var(--color-eye);"><i
+                                    class="fas fa-check"></i></span>
+                            Real-time gaze position tracking via webcam
+                        </li>
+                        <li>
+                            <span class="check" style="background: rgba(225,112,85,0.15); color: var(--color-eye);"><i
+                                    class="fas fa-check"></i></span>
+                            Hover and select elements by looking at them
+                        </li>
+                        <li>
+                            <span class="check" style="background: rgba(225,112,85,0.15); color: var(--color-eye);"><i
+                                    class="fas fa-check"></i></span>
+                            Interactive demo area to test gaze detection
+                        </li>
+                    </ul>
+                </div>
+                <div class="demo-panel eye-demo reveal">
+                    <div class="demo-header">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        <span>eye_tracking.js</span>
+                    </div>
+
+                    <div class="eye-controls" style="margin-bottom: 15px; text-align: center;">
+                        <button class="eye-btn" id="eyeStartBtn"
+                            style="background: var(--color-eye); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer;">
+                            <i class="fas fa-play"></i> Start Eye Tracking
+                        </button>
+                        <button class="eye-btn" id="eyeStopBtn"
+                            style="display: none; background: #636e72; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer;">
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                        <button class="eye-btn" id="eyeCalibrateBtn"
+                            style="display: none; background: #fdcb6e; color: #2d3436; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; margin-left: 10px;">
+                            <i class="fas fa-bullseye"></i> Calibrate
+                        </button>
+                        <button class="eye-btn" id="eyeDebugBtn"
+                            style="background: #a29bfe; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; margin-left: 10px;">
+                            <i class="fas fa-bug"></i> Debug Camera
+                        </button>
+                    </div>
+
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+                        Click "Start" then "Calibrate". Click <strong>EACH</strong> of the 9 red dots 5 times until they
+                        turn green.
+                    </p>
+                    <div class="eye-area" id="eyeArea" style="position: relative;">
+                        <!-- Calibration points will be injected here -->
+                    </div>
+                    <div class="eye-targets" id="eyeTargets">
+                        <div class="eye-target" data-target="Button A">🔵 Button A</div>
+                        <div class="eye-target" data-target="Button B">🟢 Button B</div>
+                        <div class="eye-target" data-target="Button C">🔴 Button C</div>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 12px; text-align: center;"
+                        id="eyeStatus">Eye tracking inactive.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Feature: Gesture Recognition ===== -->
+    <section class="feature-section" id="gesture-recognition">
+        <div class="container">
+            <div class="feature-layout reverse">
+                <div class="feature-info reveal">
+                    <span class="feature-badge" style="background: rgba(0,184,148,0.15); color: #00b894;">
+                        <i class="fas fa-hand-paper"></i> Gesture Recognition
+                    </span>
+                    <h2>Camera-Based Hand Gestures</h2>
+                    <p>Control the interface using hand gestures detected through your webcam. Powered by MediaPipe
+                        Hands — raise your palm to stop, make a fist to start, show thumbs up to confirm, or use a
+                        peace sign to navigate.</p>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="check" style="background: rgba(0,184,148,0.15); color: #00b894;"><i
+                                    class="fas fa-check"></i></span>
+                            Real-time hand tracking via webcam
+                        </li>
+                        <li>
+                            <span class="check" style="background: rgba(0,184,148,0.15); color: #00b894;"><i
+                                    class="fas fa-check"></i></span>
+                            Recognizes 4 gestures: Open Palm, Fist, Thumbs Up, Peace
+                        </li>
+                        <li>
+                            <span class="check" style="background: rgba(0,184,148,0.15); color: #00b894;"><i
+                                    class="fas fa-check"></i></span>
+                            Hands-free control without any special hardware
+                        </li>
+                    </ul>
+                </div>
+                <div class="demo-panel gesture-demo reveal">
+                    <div class="demo-header">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        <span>gesture_recognition.js</span>
+                    </div>
+                    <p class="gesture-status" id="gestureStatus">Click "Start Camera" to begin gesture detection</p>
+                    <div class="gesture-video-container" id="gestureVideoContainer">
+                        <video id="gestureVideo" class="gesture-video" playsinline autoplay muted></video>
+                        <canvas id="gestureCanvas" class="gesture-canvas"></canvas>
+                        <div class="gesture-indicator" id="gestureIndicator">
+                            <span class="gesture-emoji" id="gestureEmoji">🖐️</span>
+                            <span class="gesture-label" id="gestureLabel">No gesture</span>
+                        </div>
+                    </div>
+                    <div class="gesture-controls">
+                        <button class="gesture-start-btn" id="gestureStartBtn">
+                            <i class="fas fa-video"></i> Start Camera
+                        </button>
+                        <button class="gesture-stop-btn" id="gestureStopBtn" style="display:none;">
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                    </div>
+                    <div class="gesture-legend">
+                        <div class="gesture-legend-item"><span>✋</span> Open Palm = <strong>Stop / Pause</strong></div>
+                        <div class="gesture-legend-item"><span>✊</span> Fist = <strong>Start / Play</strong></div>
+                        <div class="gesture-legend-item"><span>👍</span> Thumbs Up = <strong>Confirm / OK</strong></div>
+                        <div class="gesture-legend-item"><span>👎</span> Thumbs Down = <strong>Go Back</strong></div>
+                        <div class="gesture-legend-item"><span>✌️</span> Peace = <strong>Scroll Down</strong></div>
+                        <div class="gesture-legend-item"><span>🤟</span> 3 Fingers = <strong>Scroll Up</strong></div>
+                        <div class="gesture-legend-item"><span>👆</span> Pointing = <strong>Select</strong></div>
+                        <div class="gesture-legend-item"><span>🤏</span> Pinch = <strong>Zoom / Focus</strong></div>
+                        <div class="gesture-legend-item"><span>👌</span> OK Sign = <strong>Toggle Theme</strong></div>
+                        <div class="gesture-legend-item"><span>🖖</span> 4 Fingers = <strong>Next Section</strong></div>
+                        <div class="gesture-legend-item"><span>👆</span> L-Shape = <strong>Prev Section</strong></div>
+                        <div class="gesture-legend-item"><span>🤘</span> Rock = <strong>Go to Top</strong></div>
+                        <div class="gesture-legend-item"><span>🤙</span> Hang Loose = <strong>Go to Bottom</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Feature 6: AI Summarizer ===== -->
+    <section class="feature-section" id="ai-summarizer">
+        <div class="container">
+            <div class="feature-layout reverse">
+                <div class="feature-info reveal">
+                    <span class="feature-badge" style="background: rgba(162,155,254,0.15); color: var(--color-ai);">
+                        <i class="fas fa-brain"></i> AI Summarizer
+                    </span>
+                    <h2>Intelligent Text Summarization</h2>
+                    <p>Paste any long article or document and get an instant, concise summary. Our extractive AI
+                        algorithm identifies the most important sentences to create meaningful summaries.</p>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="check" style="background: rgba(162,155,254,0.15); color: var(--color-ai);"><i
+                                    class="fas fa-check"></i></span>
+                            Extractive summarization for accuracy
+                        </li>
+                        <li>
+                            <span class="check" style="background: rgba(162,155,254,0.15); color: var(--color-ai);"><i
+                                    class="fas fa-check"></i></span>
+                            Works with any text length and language
+                        </li>
+                        <li>
+                            <span class="check" style="background: rgba(162,155,254,0.15); color: var(--color-ai);"><i
+                                    class="fas fa-check"></i></span>
+                            Preserves key facts and data points
+                        </li>
+                    </ul>
+                </div>
+                <div class="demo-panel summarizer-demo reveal">
+                    <div class="demo-header">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        <span>ai_summarizer.js</span>
+                    </div>
+                    <textarea id="summarizerInput"
+                        placeholder="Paste a long article or paragraph here to summarize...">Artificial intelligence (AI) is intelligence demonstrated by machines, as opposed to the natural intelligence displayed by animals including humans. AI research has been defined as the field of study of intelligent agents, which refers to any system that perceives its environment and takes actions that maximize its chance of achieving its goals. The term "artificial intelligence" had previously been used to describe machines that mimic and display "human" cognitive skills that are associated with the human mind, such as "learning" and "problem-solving". This definition has since been rejected by major AI researchers who now describe AI in terms of rationality and acting rationally, which does not limit how intelligence can be articulated. AI applications include advanced web search engines, recommendation systems, understanding human speech, self-driving cars, automated decision-making and competing at the highest level in strategic game systems. As machines become increasingly capable, tasks considered to require intelligence are often removed from the definition of AI, a phenomenon known as the AI effect. For instance, optical character recognition is frequently excluded from things considered to be AI, having become a routine technology.</textarea>
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <button class="summarize-btn" id="summarizeBtn"><i class="fas fa-magic"></i> Summarize</button>
+                        <label
+                            style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">
+                            <input type="checkbox" id="aiToggle" style="accent-color: var(--color-ai);" checked>
+                            <span>✨ Use Gemini AI</span>
+                        </label>
+                        <span id="aiStatusBadge"
+                            style="font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: rgba(162,155,254,0.15); color: var(--color-ai); display: none;">
+                            AI Ready
+                        </span>
+                    </div>
+                    <div class="summary-output" id="summaryOutput">
+                        <span style="color: var(--text-muted); font-style: italic;">Summary will appear here...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Feature 7: Auto Caption ===== -->
+    <section class="feature-section" id="auto-caption">
+        <div class="container">
+            <div class="feature-layout">
+                <div class="feature-info reveal">
+                    <span class="feature-badge" style="background: rgba(0,206,201,0.15); color: var(--color-caption);">
+                        <i class="fas fa-closed-captioning"></i> Auto Caption
+                    </span>
+                    <h2>Automatic Live Captions</h2>
+                    <p>Generate real-time captions for audio and video content automatically. Uses speech recognition to
+                        transcribe audio and display synchronized captions.</p>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="check"
+                                style="background: rgba(0,206,201,0.15); color: var(--color-caption);"><i
+                                    class="fas fa-check"></i></span>
+                            Real-time captioning for live audio
+                        </li>
+                        <li>
+                            <span class="check"
+                                style="background: rgba(0,206,201,0.15); color: var(--color-caption);"><i
+                                    class="fas fa-check"></i></span>
+                            Multiple language support for captions
+                        </li>
+                        <li>
+                            <span class="check"
+                                style="background: rgba(0,206,201,0.15); color: var(--color-caption);"><i
+                                    class="fas fa-check"></i></span>
+                            Toggle captions on/off with one click
+                        </li>
+                    </ul>
+                </div>
+                <div class="demo-panel caption-demo reveal">
+                    <div class="demo-header">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        <span>auto_caption.js</span>
+                    </div>
+                    <div class="video-placeholder" id="captionArea">
+                        <button class="play-btn" id="captionPlayBtn" aria-label="Start captioning">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <div class="caption-overlay" id="captionOverlay">
+                            <span id="captionText">Captions will appear here when speaking...</span>
+                        </div>
+                    </div>
+                    <div class="caption-controls">
+                        <button class="caption-toggle" id="captionToggle"><i class="fas fa-closed-captioning"></i>
+                            Captions: ON</button>
+                        <select class="caption-lang" id="captionLang">
+                            <option value="en-US">English (US)</option>
+                            <option value="en-GB">English (UK)</option>
+                            <option value="es-ES">Spanish</option>
+                            <option value="fr-FR">French</option>
+                            <option value="de-DE">German</option>
+                            <option value="hi-IN">Hindi</option>
+                            <option value="ja-JP">Japanese</option>
+                            <option value="zh-CN">Chinese</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Footer ===== -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="nav-logo">
+                        <span class="logo-icon">⚡</span>
+                        AdaptEd
+                    </div>
+                    <p>Making the web accessible for everyone through intelligent AI-powered tools and adaptive
+                        interfaces.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Features</h4>
+                    <ul>
+                        <li><a href="#speech-to-text">Speech to Text</a></li>
+                        <li><a href="#text-to-speech">Text to Speech</a></li>
+                        <li><a href="#adaptive-ui">Adaptive UI</a></li>
+                        <li><a href="#voice-nav">Voice Navigation</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>More</h4>
+                    <ul>
+                        <li><a href="#eye-tracking">Eye Tracking</a></li>
+                        <li><a href="#ai-summarizer">AI Summarizer</a></li>
+                        <li><a href="#auto-caption">Auto Caption</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>About</h4>
+                    <ul>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">GitHub</a></li>
+                        <li><a href="#">License</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>&copy; 2026 AdaptEd. All rights reserved.</span>
+                <span>Built with ❤️ for accessibility</span>
+                <button id="debugPerms"
+                    style="margin-left:10px; padding: 2px 8px; font-size: 0.7rem; opacity: 0.5;">Test Perms</button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ===== Floating Accessibility Panel ===== -->
+    <div class="accessibility-panel">
+        <button class="a11y-toggle" id="a11yToggle" aria-label="Accessibility settings">
+            <i class="fas fa-universal-access"></i>
+        </button>
+        <div class="a11y-menu" id="a11yMenu">
+            <h4>♿ Accessibility</h4>
+            <div class="a11y-option">
+                <span>Dark Mode</span>
+                <div class="toggle-switch active" id="toggleDark" data-setting="dark"></div>
+            </div>
+            <div class="a11y-option">
+                <span>High Contrast</span>
+                <div class="toggle-switch" id="toggleHC" data-setting="hc"></div>
+            </div>
+            <div class="a11y-option">
+                <span>Large Text</span>
+                <div class="toggle-switch" id="toggleLargeText" data-setting="largetext"></div>
+            </div>
+            <div class="a11y-option">
+                <span>Reduce Motion</span>
+                <div class="toggle-switch" id="toggleMotion" data-setting="motion"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
