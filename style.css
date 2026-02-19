@@ -262,20 +262,56 @@ img {
 .nav-logo {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 1.3rem;
-    font-weight: 800;
+    gap: 12px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text-primary);
+}
+
+.nav-logo span:not(.logo-icon) {
+    font-weight: 300;
+    /* Subtle weight for 'Ed' or 'Adapt' depending on preference */
+    color: var(--color-ai);
 }
 
 .nav-logo .logo-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    background: var(--accent-gradient);
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    /* Circle */
+    background: linear-gradient(135deg, rgba(162, 155, 254, 0.2), rgba(116, 185, 255, 0.2));
+    border: 1px solid rgba(162, 155, 254, 0.3);
+    box-shadow: 0 0 15px rgba(162, 155, 254, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-logo .logo-icon::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shine 3s infinite;
+}
+
+@keyframes shine {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    20% {
+        transform: translateX(100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
 }
 
 .nav-links {
@@ -1602,7 +1638,8 @@ img {
 .eye-area {
     position: relative;
     width: 100%;
-    height: 400px; /* Fixed height for calibration */
+    height: 400px;
+    /* Fixed height for calibration */
     background: rgba(0, 0, 0, 0.2);
     border: 2px dashed var(--border-glass);
     border-radius: var(--radius-md);
@@ -1613,7 +1650,7 @@ img {
 .calibration-dot {
     z-index: 100;
     transition: all 0.2s ease;
-    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .eye-targets {
