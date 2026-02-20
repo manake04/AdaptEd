@@ -34,17 +34,64 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // API call with timeout — prevents demo from hanging on slow/unresponsive API
+    async function apiCallWithTimeout(endpoint, method = 'GET', body = null, timeoutMs = 10000) {
+        if (!API_BASE) return null;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal
+            };
+            if (body) options.body = JSON.stringify(body);
+            const res = await fetch(`${API_BASE}${endpoint}`, options);
+            clearTimeout(timer);
+            return await res.json();
+        } catch (err) {
+            clearTimeout(timer);
+            if (err.name === 'AbortError') {
+                console.warn(`API call to ${endpoint} timed out after ${timeoutMs}ms`);
+            } else {
+                console.warn('API call failed:', err.message);
+            }
+            return null;
+        }
+    }
+
     function trackEvent(feature, eventType, metadata = null) {
         apiCall('/analytics/event', 'POST', { userId, feature, eventType, metadata });
     }
 
-    // ===== FEATURE MANAGER (Exclusive Access) =====
-    // ===== FEATURE MANAGER (Exclusive Audio Access) =====
-    // We distinct Audio vs Video so they can run together (Multimodal)
+    // ===== FEATURE MANAGER (Exclusive Audio + Camera Access) =====
+    // Audio and Camera are separate resources — each gets a mutex.
     function stopAudioFeatures(except = null) {
         if (except !== 'stt' && typeof stopSTT === 'function') stopSTT();
-        if (except !== 'voiceNav' && voiceNavActive && voiceNavBtn) voiceNavBtn.click(); // Toggle off
-        if (except !== 'caption' && captionActive && captionPlayBtn) captionPlayBtn.click(); // Toggle off
+        if (except !== 'voiceNav' && voiceNavActive && voiceNavBtn) voiceNavBtn.click();
+        if (except !== 'caption' && captionActive && captionPlayBtn) captionPlayBtn.click();
+    }
+
+    // Camera mutex — only ONE camera feature at a time (eye tracking OR gesture)
+    function stopCameraFeatures(except = null) {
+        if (except !== 'eye' && eyeTrackingActive) {
+            // Programmatically stop eye tracking
+            if (window.webgazer) {
+                try { webgazer.end(); } catch (e) { /* ignore */ }
+                try { webgazer.showVideoPreview(false); } catch (e) { /* ignore */ }
+                try { webgazer.showPredictionPoints(false); } catch (e) { /* ignore */ }
+            }
+            if (eyeArea) eyeArea.innerHTML = '';
+            if (eyeStartBtn) eyeStartBtn.style.display = 'inline-flex';
+            if (eyeStopBtn) eyeStopBtn.style.display = 'none';
+            if (eyeCalibrateBtn) eyeCalibrateBtn.style.display = 'none';
+            if (eyeStatus) eyeStatus.textContent = 'Eye tracking stopped (camera needed elsewhere).';
+            eyeTrackingActive = false;
+            if (gazeCursor) { gazeCursor.remove(); gazeCursor = null; }
+        }
+        if (except !== 'gesture' && typeof stopGestureRecognition === 'function') {
+            stopGestureRecognition();
+        }
     }
 
     // Check for Secure Context
@@ -59,23 +106,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const navbar = document.getElementById('navbar');
     let activeSectionId = 'hero';
 
+    // Throttled scroll handler — uses rAF to avoid layout thrash
+    let scrollTicking = false;
     window.addEventListener('scroll', () => {
-        navbar.classList.toggle('scrolled', window.scrollY > 50);
+        if (scrollTicking) return;
+        scrollTicking = true;
+        requestAnimationFrame(() => {
+            scrollTicking = false;
+            navbar.classList.toggle('scrolled', window.scrollY > 50);
 
-        // Track active section for context-aware gestures
-        const sections = document.querySelectorAll('section[id]');
-        let current = '';
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop;
-            const sectionHeight = section.offsetHeight;
-            if (scrollY >= (sectionTop - 200)) {
-                current = section.getAttribute('id');
+            // Track active section for context-aware gestures + active nav link
+            const allSects = document.querySelectorAll('section[id]');
+            const scrollY = window.scrollY + 200;
+            let current = '';
+            allSects.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.offsetHeight;
+                const sectionId = section.getAttribute('id');
+                if (window.scrollY >= (sectionTop - 200)) {
+                    current = sectionId;
+                }
+                // Also update active nav link in the same pass
+                const navLink = document.querySelector(`.nav-links a[href="#${sectionId}"]`);
+                if (navLink) {
+                    if (scrollY >= sectionTop && scrollY < sectionTop + sectionHeight) {
+                        document.querySelectorAll('.nav-links a').forEach(l => l.classList.remove('active'));
+                        navLink.classList.add('active');
+                    }
+                }
+            });
+            if (current && current !== activeSectionId) {
+                activeSectionId = current;
             }
         });
-        if (current && current !== activeSectionId) {
-            activeSectionId = current;
-            console.log('Active Section:', activeSectionId);
-        }
     });
 
     // Mobile toggle
@@ -112,6 +175,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let sttListening = false;
     let sttFinalTranscript = '';
     let sttStartTime = null;
+    const STT_MAX_SESSION_MS = 120000; // 2-minute max session to prevent infinite listening
+    let sttSessionTimer = null;
 
     // Helper: safely start a recognition instance (prevents permission loop)
     function safeStartRecognition(recognition, onError) {
@@ -184,6 +249,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         stopAudioFeatures('stt'); // Stop other mics only
+        sttListening = true;
+        sttStartTime = Date.now();
+        sttMicBtn.classList.add('listening');
+        sttStatus.textContent = '🎤 Listening...';
         safeStartRecognition(sttRecognition, (err) => {
             console.error('STT Start Error:', err);
             if (err.error === 'not-allowed') {
@@ -196,11 +265,19 @@ document.addEventListener('DOMContentLoaded', () => {
             sttStatus.textContent = 'Error starting microphone.';
             stopSTT();
         });
+        // Auto-stop after 2 minutes to prevent infinite session
+        sttSessionTimer = setTimeout(() => {
+            if (sttListening) {
+                sttStatus.textContent = '⏰ Session timed out (2 min limit). Click mic to restart.';
+                stopSTT();
+            }
+        }, STT_MAX_SESSION_MS);
         trackEvent('speech_to_text', 'stt_started');
     }
 
     function stopSTT() {
         sttListening = false;
+        if (sttSessionTimer) { clearTimeout(sttSessionTimer); sttSessionTimer = null; }
         sttMicBtn.classList.remove('listening');
         sttStatus.textContent = 'Click the mic to start listening';
         if (sttRecognition) sttRecognition.stop();
@@ -407,37 +484,156 @@ document.addEventListener('DOMContentLoaded', () => {
         voiceNavRecognition.interimResults = false;
         voiceNavRecognition.lang = 'en-US';
 
+        // Spoken feedback for visually impaired users
+        function speakFeedback(text) {
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.rate = 1.2;
+            utter.volume = 0.8;
+            speechSynthesis.speak(utter);
+        }
+
         voiceNavRecognition.onresult = (event) => {
             const last = event.results[event.results.length - 1];
             const command = last[0].transcript.toLowerCase().trim();
             voiceNavStatus.textContent = `Heard: "${command}"`;
 
-            // Regex for robust matching
+            // Helper for regex matching
             const isCommand = (regex) => regex.test(command);
 
+            // --- SCROLL COMMANDS ---
             if (isCommand(/scroll down|move down|go down|page down/)) {
                 window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });
                 voiceNavStatus.textContent = '⬇️ Scrolling down...';
+                speakFeedback('Scrolling down');
             } else if (isCommand(/scroll up|move up|go up|page up/)) {
                 window.scrollBy({ top: -window.innerHeight * 0.8, behavior: 'smooth' });
                 voiceNavStatus.textContent = '⬆️ Scrolling up...';
+                speakFeedback('Scrolling up');
             } else if (isCommand(/go to bottom|scroll to bottom|bottom of page|footer/)) {
                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                 voiceNavStatus.textContent = '⬇️ Going to bottom...';
+                speakFeedback('Going to bottom of page');
             } else if (isCommand(/go to top|scroll to top|top of page|header/)) {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 voiceNavStatus.textContent = '⬆️ Going to top...';
+                speakFeedback('Going to top of page');
+
+                // --- INPUT MODE: DICTATION (STT) ---
+            } else if (isCommand(/start dictation|start typing|voice typing|start voice input|switch to voice/)) {
+                voiceNavStatus.textContent = '🎤 Starting dictation mode...';
+                speakFeedback('Starting dictation. Speak and your words will be typed.');
+                // Stop voice nav temporarily, start STT
+                voiceNavActive = false;
+                voiceNavRecognition.stop();
+                voiceNavBtn.classList.remove('active');
+                setTimeout(() => { startSTT(); }, 500);
+            } else if (isCommand(/stop dictation|stop typing|stop voice input|switch to text/)) {
+                voiceNavStatus.textContent = '⌨️ Stopped dictation.';
+                speakFeedback('Dictation stopped. You can type normally.');
+                stopSTT();
+
+                // --- CAPTIONS ---
+            } else if (isCommand(/start captions?|turn on captions?|enable captions?/)) {
+                voiceNavStatus.textContent = '📝 Starting captions...';
+                speakFeedback('Auto captions enabled.');
+                if (captionPlayBtn && !captionActive) captionPlayBtn.click();
+            } else if (isCommand(/stop captions?|turn off captions?|disable captions?/)) {
+                voiceNavStatus.textContent = '📝 Stopping captions.';
+                speakFeedback('Auto captions disabled.');
+                if (captionPlayBtn && captionActive) captionPlayBtn.click();
+
+                // --- READ PAGE ALOUD (TTS) ---
+            } else if (isCommand(/read page|read this|read aloud|read content|read text/)) {
+                // Find the current visible section and read its text
+                const currentSection = document.querySelector(`section#${activeSectionId}`);
+                if (currentSection) {
+                    const textContent = currentSection.innerText.substring(0, 1000);
+                    voiceNavStatus.textContent = '🔊 Reading current section...';
+                    speakFeedback(textContent);
+                } else {
+                    speakFeedback('No content found to read.');
+                }
+            } else if (isCommand(/stop reading|stop speaking|be quiet|shut up|silence/)) {
+                speechSynthesis.cancel();
+                voiceNavStatus.textContent = '🔇 Stopped reading.';
+
+                // --- UI CONTROLS ---
+            } else if (isCommand(/increase (font|text)|bigger (font|text)|larger (font|text)|font bigger|text bigger/)) {
+                const lgBtn = document.querySelector('.size-btn[data-size="large"]');
+                if (lgBtn) lgBtn.click();
+                voiceNavStatus.textContent = '🔤 Text size increased.';
+                speakFeedback('Text size increased to large.');
+            } else if (isCommand(/decrease (font|text)|smaller (font|text)|font smaller|text smaller|normal (font|text)/)) {
+                const smBtn = document.querySelector('.size-btn[data-size="normal"]');
+                if (smBtn) smBtn.click();
+                voiceNavStatus.textContent = '🔤 Text size set to normal.';
+                speakFeedback('Text size set to normal.');
+
+            } else if (isCommand(/dark mode|dark theme|enable dark/)) {
+                const darkBtn = document.querySelector('.theme-btn[data-theme="dark"]');
+                if (darkBtn) darkBtn.click();
+                voiceNavStatus.textContent = '🌙 Dark mode enabled.';
+                speakFeedback('Dark mode enabled.');
+            } else if (isCommand(/light mode|light theme|enable light|normal theme/)) {
+                const lightBtn = document.querySelector('.theme-btn[data-theme="default"]');
+                if (lightBtn) lightBtn.click();
+                voiceNavStatus.textContent = '☀️ Light mode enabled.';
+                speakFeedback('Light mode enabled.');
+            } else if (isCommand(/high contrast|contrast mode|enable contrast/)) {
+                const hcBtn = document.querySelector('.theme-btn[data-theme="high-contrast"]');
+                if (hcBtn) hcBtn.click();
+                voiceNavStatus.textContent = '🔲 High contrast mode enabled.';
+                speakFeedback('High contrast mode enabled.');
+
+                // --- INTERACTION: CLICK ---
+            } else if (isCommand(/click|press|select|activate/)) {
+                const focused = document.activeElement;
+                if (focused && focused !== document.body) {
+                    focused.click();
+                    voiceNavStatus.textContent = `👆 Clicked: ${focused.tagName}`;
+                    speakFeedback('Clicked.');
+                } else {
+                    voiceNavStatus.textContent = '❓ Nothing focused to click.';
+                    speakFeedback('Nothing is focused. Use Tab to focus an element first.');
+                }
+
+                // --- TAB / FOCUS NAVIGATION ---
+            } else if (isCommand(/next element|tab|next|focus next/)) {
+                // Simulate Tab key
+                const focusable = Array.from(document.querySelectorAll('button, a, input, select, textarea, [tabindex]'));
+                const currentIdx = focusable.indexOf(document.activeElement);
+                const nextIdx = (currentIdx + 1) % focusable.length;
+                focusable[nextIdx].focus();
+                voiceNavStatus.textContent = `➡️ Focused: ${focusable[nextIdx].textContent?.trim().substring(0, 30) || focusable[nextIdx].tagName}`;
+                speakFeedback(focusable[nextIdx].getAttribute('aria-label') || focusable[nextIdx].textContent?.trim().substring(0, 50) || 'Next element');
+            } else if (isCommand(/previous element|shift tab|previous|focus previous|go back/)) {
+                const focusable = Array.from(document.querySelectorAll('button, a, input, select, textarea, [tabindex]'));
+                const currentIdx = focusable.indexOf(document.activeElement);
+                const prevIdx = (currentIdx - 1 + focusable.length) % focusable.length;
+                focusable[prevIdx].focus();
+                voiceNavStatus.textContent = `⬅️ Focused: ${focusable[prevIdx].textContent?.trim().substring(0, 30) || focusable[prevIdx].tagName}`;
+                speakFeedback(focusable[prevIdx].getAttribute('aria-label') || focusable[prevIdx].textContent?.trim().substring(0, 50) || 'Previous element');
+
+                // --- HELP ---
+            } else if (isCommand(/help|what can (i|you) (say|do)|commands|list commands/)) {
+                voiceNavStatus.textContent = '📋 Listing available voice commands...';
+                speakFeedback('Available commands: scroll up, scroll down, go to top, go to bottom, go to any section name, start dictation, stop dictation, start captions, stop captions, read page, stop reading, increase font, decrease font, dark mode, light mode, high contrast, click, next, previous, help, stop listening.');
+
+                // --- STOP ---
             } else if (isCommand(/stop listening|stop voice|turn off voice/)) {
-                // Handled by voiceNavBtn click simulation or direct stop
+                speakFeedback('Voice navigation stopped.');
                 voiceNavBtn.click();
+
+                // --- SECTION NAVIGATION (fallback) ---
             } else {
                 let foundFn = false;
                 for (const [key, selector] of Object.entries(voiceNavSections)) {
-                    if (command.includes(key)) { // Keep includes for section names as they are specific
+                    if (command.includes(key)) {
                         const el = document.querySelector(selector);
                         if (el) {
                             el.scrollIntoView({ behavior: 'smooth' });
                             voiceNavStatus.textContent = `✅ Navigated to "${key}"`;
+                            speakFeedback(`Navigated to ${key}`);
                             trackEvent('voice_navigation', 'nav_command', { command: key });
                             foundFn = true;
                         }
@@ -445,7 +641,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 if (!foundFn) {
-                    voiceNavStatus.textContent = `❓ Unknown command: "${command}"`;
+                    voiceNavStatus.textContent = `❓ Unknown command: "${command}". Say "help" for a list.`;
+                    speakFeedback(`Unknown command: ${command}. Say help for available commands.`);
                 }
             }
         };
@@ -520,6 +717,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ===== GLOBAL KEYBOARD SHORTCUT: Alt+V to toggle Voice Navigation =====
+    document.addEventListener('keydown', (e) => {
+        if (e.altKey && (e.key === 'v' || e.key === 'V')) {
+            e.preventDefault();
+            voiceNavBtn.click();
+        }
+    });
+
     // ===== 7. EYE TRACKING (Feature 5 — WebGazer.js) =====
     const eyeArea = document.getElementById('eyeArea');
     const eyeTargets = document.querySelectorAll('.eye-target');
@@ -528,6 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const eyeStopBtn = document.getElementById('eyeStopBtn');
     const eyeCalibrateBtn = document.getElementById('eyeCalibrateBtn');
     let eyeTrackingActive = false;
+    let gazeCursor = null; // Module-scope ref for the gaze cursor element
 
     // Smoothing Variables
     const SMOOTHING_FACTOR = 0.2; // Lower = more smoothing (less jitter, more lag)
@@ -556,6 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Clear previous listeners to avoid duplicates if restarted
+        try { webgazer.clearGazeListener(); } catch (e) { /* ignore if not started yet */ }
         webgazer.clearData();
 
         webgazer.setGazeListener(function (data, elapsedTime) {
@@ -566,8 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const x = smoothed.x;
             const y = smoothed.y;
 
-            // Update Gaze Cursor
-            let gazeCursor = document.getElementById('gazeCursor');
+            // Update Gaze Cursor (use module-scope gazeCursor ref)
             if (!gazeCursor) {
                 gazeCursor = document.createElement('div');
                 gazeCursor.id = 'gazeCursor';
@@ -583,8 +789,8 @@ document.addEventListener('DOMContentLoaded', () => {
             gazeCursor.style.top = `${y}px`;
             gazeCursor.style.transform = 'translate(-50%, -50%)';
 
-            // Interaction: Check if gaze is over targets
             // Highlight targets based on gaze
+            let lookingAtSomething = false;
             eyeTargets.forEach(target => {
                 const rect = target.getBoundingClientRect();
                 if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
@@ -595,7 +801,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         eyeStatus.style.color = '#00b894';
                         trackEvent('eye_tracking', 'gaze_target', { target: target.dataset.target });
 
-                        // Interaction: Clicking mechanism (optional dwell)
                         gazeCursor.style.background = 'rgba(231, 76, 60, 0.3)';
                     }
                 } else {
@@ -606,7 +811,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!lookingAtSomething) {
                 eyeStatus.textContent = '✅ Face Detected — Tracking Eyes...';
                 eyeStatus.style.color = 'var(--text-secondary)';
-                gazeCursor.style.background = 'transparent';
+                if (gazeCursor) gazeCursor.style.background = 'transparent';
             }
         }).begin();
 
@@ -667,6 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     eyeStartBtn.addEventListener('click', () => {
+        stopCameraFeatures('eye'); // Stop gesture camera if running
         eyeStatus.textContent = 'starting eye tracking...';
         initEyeTracking();
         eyeStartBtn.style.display = 'none';
@@ -679,18 +885,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     eyeStopBtn.addEventListener('click', () => {
         if (window.webgazer) {
-            webgazer.end();
-            webgazer.showVideoPreview(false);
-            webgazer.showPredictionPoints(false);
+            try { webgazer.clearGazeListener(); } catch (e) { /* ignore */ }
+            try { webgazer.end(); } catch (e) { /* ignore */ }
+            try { webgazer.showVideoPreview(false); } catch (e) { /* ignore */ }
+            try { webgazer.showPredictionPoints(false); } catch (e) { /* ignore */ }
         }
-        eyeArea.innerHTML = ''; // Clear calibration dots
+        eyeArea.innerHTML = '';
         eyeStartBtn.style.display = 'inline-flex';
         eyeStopBtn.style.display = 'none';
         eyeCalibrateBtn.style.display = 'none';
         eyeStatus.textContent = 'Eye tracking stopped.';
         eyeTrackingActive = false;
 
-        if (gazeCursor) gazeCursor.remove();
+        if (gazeCursor) { gazeCursor.remove(); gazeCursor = null; }
     });
 
     eyeCalibrateBtn.addEventListener('click', () => {
@@ -799,21 +1006,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const useAI = aiToggle && aiToggle.checked;
 
-        // Strategy: AI toggle ON → try Gemini first → extractive backend → client-side
-        //           AI toggle OFF → extractive backend → client-side
+        // Strategy: AI toggle ON → try Gemini first (with 10s timeout) → extractive backend → client-side
         let result = null;
 
         if (useAI) {
             summaryOutput.innerHTML = '<div class="loading"><div class="spinner"></div> ✨ Generating AI summary with Gemini...</div>';
-            result = await apiCall('/ai/summarize', 'POST', { userId, text, style: 'concise' });
+            // Gemini API call with 10s timeout to prevent hanging demo
+            result = await apiCallWithTimeout('/ai/summarize', 'POST', { userId, text, style: 'concise' }, 10000);
         }
 
         if (!result || result.error) {
-            // Fallback to extractive backend
             if (useAI) {
                 summaryOutput.innerHTML = '<div class="loading"><div class="spinner"></div> AI unavailable, using extractive method...</div>';
             }
-            result = await apiCall('/summarize', 'POST', { userId, text, numSentences: 3 });
+            result = await apiCallWithTimeout('/summarize', 'POST', { userId, text, numSentences: 3 }, 8000);
         }
 
         if (result && result.summary) {
@@ -1257,6 +1463,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        stopCameraFeatures('gesture'); // Stop eye tracking camera if running
+
         try {
             gestureStream = await navigator.mediaDevices.getUserMedia({
                 video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
@@ -1271,10 +1479,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             hands.setOptions({
                 maxNumHands: 1,
-                modelComplexity: 1,
+                modelComplexity: 0, // Lite model — much faster on low-end hardware
                 minDetectionConfidence: 0.5,
                 minTrackingConfidence: 0.4
             });
+
+            // Frame-skip counter — process every 2nd frame to halve GPU load
+            let gestureFrameCount = 0;
 
             hands.onResults((results) => {
                 const canvasCtx = gestureCanvas.getContext('2d');
@@ -1300,7 +1511,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (confirmed) {
                             executeGestureAction(confirmed);
                         }
-                        // Show raw detection even before confirmation
                         gestureEmoji.textContent = rawGesture.emoji;
                         gestureLabel.textContent = rawGesture.name;
                     } else {
@@ -1319,6 +1529,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             gestureCamera = new Camera(gestureVideo, {
                 onFrame: async () => {
+                    // Process every 2nd frame — halves GPU/CPU load
+                    gestureFrameCount++;
+                    if (gestureFrameCount % 2 !== 0) return;
                     await hands.send({ image: gestureVideo });
                 },
                 width: 640,
@@ -1385,30 +1598,150 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-
-    // Active nav link on scroll
-    const sections = document.querySelectorAll('section[id]');
-    window.addEventListener('scroll', () => {
-        const scrollY = window.scrollY + 200;
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop;
-            const sectionHeight = section.offsetHeight;
-            const sectionId = section.getAttribute('id');
-            const navLink = document.querySelector(`.nav-links a[href="#${sectionId}"]`);
-            if (navLink) {
-                if (scrollY >= sectionTop && scrollY < sectionTop + sectionHeight) {
-                    document.querySelectorAll('.nav-links a').forEach(l => l.classList.remove('active'));
-                    navLink.classList.add('active');
-                }
-            }
-        });
-    });
+    // NOTE: Active nav link tracking is now merged into the main scroll handler above (section 1)
 
     // ===== 14. INITIALIZE — Load from backend =====
     loadPreferences();
     loadTranscriptionHistory();
     checkAIStatus();
     trackEvent('page', 'page_loaded');
+
+    // ===== 14b. VISUAL IMPAIRMENT PROFILE — Auto voice input =====
+    const userProfile = localStorage.getItem('user_disability_profile');
+    if (userProfile === 'visual') {
+        // 1. Auto-apply visual accessibility settings
+        document.documentElement.setAttribute('data-theme', 'high-contrast');
+        document.documentElement.setAttribute('data-fontsize', 'large');
+
+        // 2. Auto-start Voice Navigation after a short delay (let page settle)
+        setTimeout(() => {
+            if (voiceNavBtn && !voiceNavActive) {
+                voiceNavBtn.click(); // Activates voice nav
+            }
+        }, 1500);
+
+        // 3. Welcome announcement via TTS
+        setTimeout(() => {
+            const welcome = new SpeechSynthesisUtterance(
+                'Welcome to AdaptEd. Voice navigation is now active. ' +
+                'Say "help" to hear all available voice commands. ' +
+                'Press Alt plus V to toggle voice control at any time. ' +
+                'All text fields now have a microphone button for voice input.'
+            );
+            welcome.rate = 1.0;
+            welcome.volume = 1.0;
+            speechSynthesis.speak(welcome);
+        }, 2500);
+
+        // 4. Add voice-input mic buttons next to every text input field
+        const textInputs = document.querySelectorAll('textarea, input[type="text"]');
+        textInputs.forEach((input) => {
+            // Skip if already has a mic button
+            if (input.parentElement.querySelector('.voice-input-btn')) return;
+
+            const micBtn = document.createElement('button');
+            micBtn.className = 'voice-input-btn';
+            micBtn.type = 'button';
+            micBtn.innerHTML = '<i class="fas fa-microphone"></i> Speak';
+            micBtn.setAttribute('aria-label', `Voice input for ${input.placeholder || input.id || 'text field'}`);
+            micBtn.style.cssText = `
+                display: inline-flex; align-items: center; gap: 6px;
+                margin: 8px 0; padding: 8px 16px;
+                background: var(--color-voice, #fdcb6e); color: #000;
+                border: none; border-radius: 8px; cursor: pointer;
+                font-size: 0.85rem; font-weight: 600;
+                transition: all 0.2s ease;
+            `;
+
+            let dictationRecognition = null;
+            let isDictating = false;
+
+            micBtn.addEventListener('click', () => {
+                if (isDictating) {
+                    // Stop dictation
+                    isDictating = false;
+                    if (dictationRecognition) dictationRecognition.stop();
+                    micBtn.innerHTML = '<i class="fas fa-microphone"></i> Speak';
+                    micBtn.style.background = 'var(--color-voice, #fdcb6e)';
+                    return;
+                }
+
+                // Stop voice nav temporarily so mic doesn't conflict
+                if (voiceNavActive) {
+                    voiceNavActive = false;
+                    voiceNavRecognition.stop();
+                    voiceNavBtn.classList.remove('active');
+                }
+                stopAudioFeatures('dictation');
+
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    const noSupport = new SpeechSynthesisUtterance('Speech recognition is not supported in this browser.');
+                    speechSynthesis.speak(noSupport);
+                    return;
+                }
+
+                dictationRecognition = new SpeechRecognition();
+                dictationRecognition.continuous = true;
+                dictationRecognition.interimResults = true;
+                dictationRecognition.lang = 'en-US';
+
+                isDictating = true;
+                micBtn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop';
+                micBtn.style.background = '#e74c3c';
+                micBtn.style.color = '#fff';
+
+                // Announce
+                const announce = new SpeechSynthesisUtterance('Speak now. Your words will appear in the text field.');
+                announce.rate = 1.2;
+                speechSynthesis.speak(announce);
+
+                dictationRecognition.onresult = (event) => {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    if (finalTranscript) {
+                        // Append to existing input value
+                        input.value += (input.value ? ' ' : '') + finalTranscript.trim();
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                };
+
+                dictationRecognition.onend = () => {
+                    if (isDictating) {
+                        // Auto-restart if still in dictation mode
+                        try { dictationRecognition.start(); } catch (e) { /* ignore */ }
+                    } else {
+                        micBtn.innerHTML = '<i class="fas fa-microphone"></i> Speak';
+                        micBtn.style.background = 'var(--color-voice, #fdcb6e)';
+                        micBtn.style.color = '#000';
+                    }
+                };
+
+                dictationRecognition.onerror = (event) => {
+                    if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                        const errMsg = new SpeechSynthesisUtterance('Microphone error. Please check permissions.');
+                        speechSynthesis.speak(errMsg);
+                        isDictating = false;
+                        micBtn.innerHTML = '<i class="fas fa-microphone"></i> Speak';
+                        micBtn.style.background = 'var(--color-voice, #fdcb6e)';
+                        micBtn.style.color = '#000';
+                    }
+                };
+
+                dictationRecognition.start();
+            });
+
+            // Insert mic button after the input
+            input.parentElement.insertBefore(micBtn, input.nextSibling);
+        });
+    }
 
     // Debug Permissions
     const debugBtn = document.getElementById('debugPerms');
@@ -1422,5 +1755,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // ===== 15. CLEANUP ON PAGE UNLOAD — Prevent memory leaks =====
+    window.addEventListener('beforeunload', () => {
+        // Stop all speech recognition instances
+        if (sttRecognition) try { sttRecognition.stop(); } catch (e) { /* ignore */ }
+        if (voiceNavRecognition) try { voiceNavRecognition.stop(); } catch (e) { /* ignore */ }
+        if (captionRecognition) try { captionRecognition.stop(); } catch (e) { /* ignore */ }
+        // Stop speech synthesis
+        if (speechSynthesis.speaking) speechSynthesis.cancel();
+        // Stop camera streams
+        if (gestureStream) gestureStream.getTracks().forEach(t => t.stop());
+        if (gestureCamera) try { gestureCamera.stop(); } catch (e) { /* ignore */ }
+        // Stop WebGazer
+        if (window.webgazer && eyeTrackingActive) try { webgazer.end(); } catch (e) { /* ignore */ }
+        // Disconnect IntersectionObserver
+        if (revealObserver) revealObserver.disconnect();
+    });
 
 });

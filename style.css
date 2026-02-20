@@ -186,9 +186,10 @@ img {
 .bg-glow .orb {
     position: absolute;
     border-radius: 50%;
-    filter: blur(120px);
+    filter: blur(60px);
     opacity: 0.15;
     animation: orbFloat 20s ease-in-out infinite;
+    will-change: transform;
 }
 
 .bg-glow .orb:nth-child(1) {
@@ -1380,6 +1381,63 @@ img {
     transform: translateY(0);
 }
 
+/* ===== Prefers Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .bg-glow .orb {
+        animation: none;
+        opacity: 0.08;
+    }
+
+    .reveal {
+        opacity: 1;
+        transform: none;
+    }
+
+    .hero-badge,
+    .hero h1,
+    .hero p,
+    .hero-buttons,
+    .hero-stats {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+
+    .stt-demo .mic-btn.listening {
+        animation: none;
+        box-shadow: 0 0 0 4px rgba(253, 121, 168, 0.4);
+    }
+
+    .voice-nav-demo .voice-btn.active {
+        animation: none;
+        box-shadow: 0 0 0 4px rgba(255, 234, 167, 0.4);
+    }
+
+    .nav-logo .logo-icon::after {
+        animation: none;
+    }
+
+    .feature-card:hover {
+        transform: none;
+    }
+
+    .nav-cta:hover,
+    .btn-primary:hover,
+    .btn-secondary:hover {
+        transform: none;
+    }
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
     .feature-layout {
@@ -1653,27 +1711,4 @@ img {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
-.eye-targets {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin-top: 20px;
-    flex-wrap: wrap;
-}
-
-.eye-target {
-    padding: 15px 30px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-glass);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.eye-target.hovered {
-    background: var(--color-eye);
-    color: white;
-    transform: scale(1.1);
-    box-shadow: 0 0 20px rgba(225, 112, 85, 0.5);
-}
+/* (eye-targets and eye-target styles are defined above in the Eye Tracking Demo section) */

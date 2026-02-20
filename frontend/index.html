@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-fontsize="normal">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdaptEd — Adaptive Accessibility Engine</title>
+    <meta name="description"
+        content="An adaptive accessibility assistant that personalizes learning through voice, gesture, and multimodal interaction.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
+    <!-- Our Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- ===== Animated Background ===== -->
+    <div class="bg-glow">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- ===== Profile Selection Modal ===== -->
+    <div id="profileModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <span class="modal-icon">♿</span>
+                <h2>Choose Your Accessibility Mode</h2>
+                <p>The interface will adapt to your needs automatically.</p>
+            </div>
+            <div class="profile-grid">
+                <!-- Hearing Impaired -->
+                <button class="profile-btn" onclick="selectProfile('hearing')">
+                    <div class="profile-icon">🦻</div>
+                    <h3>Hearing Impaired</h3>
+                    <p>Auto-captions, text output, visual alerts</p>
+                    <div class="profile-features">
+                        <span class="tag">Captions</span>
+                        <span class="tag">Visual Alerts</span>
+                    </div>
+                </button>
+                <!-- Visually Impaired -->
+                <button class="profile-btn" onclick="selectProfile('visual')">
+                    <div class="profile-icon">👁️</div>
+                    <h3>Visually Impaired</h3>
+                    <p>Text-to-speech, voice navigation, high contrast</p>
+                    <div class="profile-features">
+                        <span class="tag">TTS</span>
+                        <span class="tag">Voice Nav</span>
+                        <span class="tag">Contrast</span>
+                    </div>
+                </button>
+                <!-- Motor Impaired -->
+                <button class="profile-btn" onclick="selectProfile('motor')">
+                    <div class="profile-icon">🖐️</div>
+                    <h3>Motor Impaired</h3>
+                    <p>Gesture & voice navigation, large targets</p>
+                    <div class="profile-features">
+                        <span class="tag">Gestures</span>
+                        <span class="tag">Voice</span>
+                        <span class="tag">Large UI</span>
+                    </div>
+                </button>
+                <!-- Normal Mode -->
+                <button class="profile-btn" onclick="selectProfile('normal')">
+                    <div class="profile-icon">🎓</div>
+                    <h3>Standard</h3>
+                    <p>Full experience with all features on demand</p>
+                    <div class="profile-features">
+                        <span class="tag">All Features</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Navigation ===== -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <a href="#" class="nav-logo">
+                <span class="logo-icon">✨</span>
+                Adapt<span>Ed</span>
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#workspace">Workspace</a></li>
+                <li><a href="#gesture-section">Gestures</a></li>
+                <li><a href="#voice-section">Voice</a></li>
+                <li><a href="#settings-section">Settings</a></li>
+            </ul>
+            <div class="nav-right">
+                <div class="profile-badge" id="profileBadge" onclick="showProfileModal()">
+                    <span class="badge-icon">🎓</span>
+                    <span class="badge-label" id="profileBadgeLabel">Normal</span>
+                </div>
+                <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ===== Status Bar (replaces flashy hero) ===== -->
+    <section class="status-bar" id="statusBar">
+        <div class="container">
+            <div class="status-bar-inner">
+                <div class="status-group">
+                    <div class="status-chip" id="dashCaptions">
+                        <i class="fas fa-closed-captioning"></i>
+                        <span>Captions</span>
+                        <span class="dot off" id="statusCaptions"></span>
+                    </div>
+                    <div class="status-chip" id="dashTTS">
+                        <i class="fas fa-volume-up"></i>
+                        <span>TTS</span>
+                        <span class="dot off" id="statusTTS"></span>
+                    </div>
+                    <div class="status-chip" id="dashSTT">
+                        <i class="fas fa-microphone"></i>
+                        <span>Voice</span>
+                        <span class="dot off" id="statusSTT"></span>
+                    </div>
+                    <div class="status-chip" id="dashGestures">
+                        <i class="fas fa-hand-paper"></i>
+                        <span>Gestures</span>
+                        <span class="dot off" id="statusGestures"></span>
+                    </div>
+                    <div class="status-chip" id="dashContrast">
+                        <i class="fas fa-adjust"></i>
+                        <span>Contrast</span>
+                        <span class="dot off" id="statusContrast"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Main Workspace ===== -->
+    <section class="section workspace-section" id="workspace">
+        <div class="container">
+            <div class="workspace-grid">
+                <!-- ===== Input Panel ===== -->
+                <div class="glass-card input-panel">
+                    <div class="card-header">
+                        <h3><i class="fas fa-pen-fancy"></i> Input</h3>
+                        <div class="input-method-tabs">
+                            <button class="method-tab active" data-method="text" onclick="switchInputMethod('text')">
+                                <i class="fas fa-keyboard"></i> Text
+                            </button>
+                            <button class="method-tab" data-method="voice" onclick="switchInputMethod('voice')">
+                                <i class="fas fa-microphone"></i> Voice
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Text Input -->
+                    <div class="input-area" id="textInputArea">
+                        <textarea id="mainTextInput" placeholder="Paste or type your learning content here…"
+                            rows="10"></textarea>
+                    </div>
+
+                    <!-- Voice Input -->
+                    <div class="input-area hidden" id="voiceInputArea">
+                        <div class="voice-input-container">
+                            <button class="mic-btn" id="voiceMicBtn">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <p class="mic-label" id="voiceMicLabel">Click to start speaking</p>
+                            <div class="voice-transcript" id="voiceTranscript">
+                                <span class="placeholder-text">Your speech will appear here...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-row">
+                        <button class="btn btn-primary" id="btnSummarize" onclick="handleSummarize()">
+                            <i class="fas fa-compress-alt"></i> Summarize
+                        </button>
+                        <button class="btn btn-secondary" id="btnSimplify" onclick="handleSimplify()">
+                            <i class="fas fa-feather-alt"></i> Simplify
+                        </button>
+                        <button class="btn btn-accent" id="btnReadAloud" onclick="handleReadAloud()">
+                            <i class="fas fa-volume-up"></i> Read Aloud
+                        </button>
+                        <button class="btn btn-ghost" id="btnClear" onclick="handleClear()">
+                            <i class="fas fa-trash-alt"></i> Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ===== Output Panel ===== -->
+                <div class="glass-card output-panel">
+                    <div class="card-header">
+                        <h3><i class="fas fa-magic"></i> Output</h3>
+                        <div class="output-controls">
+                            <button class="icon-btn" id="btnCopyOutput" onclick="copyOutput()" title="Copy">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="icon-btn" id="btnSpeakOutput" onclick="speakOutput()" title="Read Aloud">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="icon-btn" id="btnStopSpeak" onclick="stopSpeaking()" title="Stop">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="output-area" id="outputArea">
+                        <div class="output-placeholder">
+                            <i class="fas fa-arrow-left"></i>
+                            <p>Enter text on the left and click <strong>Summarize</strong> or <strong>Simplify</strong>
+                                to see results here.</p>
+                        </div>
+                    </div>
+                    <!-- AI Stats -->
+                    <div class="ai-stats hidden" id="aiStats">
+                        <div class="stat-chip"><i class="fas fa-file-word"></i> Original: <span
+                                id="statOriginal">0</span> words</div>
+                        <div class="stat-chip"><i class="fas fa-compress"></i> Result: <span id="statResult">0</span>
+                            words</div>
+                        <div class="stat-chip"><i class="fas fa-percentage"></i> Reduced: <span
+                                id="statReduction">0</span>%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== Live Captions Panel ===== -->
+            <div class="glass-card captions-panel" id="captionsPanel" style="display:none;">
+                <div class="card-header">
+                    <h3><i class="fas fa-closed-captioning"></i> Live Captions</h3>
+                    <div class="caption-controls">
+                        <button class="icon-btn" id="btnCaptionToggle" onclick="toggleCaptions()">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="icon-btn" onclick="clearCaptions()">
+                            <i class="fas fa-eraser"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="captions-area" id="captionsArea">
+                    <p class="caption-placeholder">Captions will appear here in real-time as you speak...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Gesture Recognition Section ===== -->
+    <section class="section" id="gesture-section">
+        <div class="container">
+            <div class="gesture-layout">
+                <!-- Webcam Feed -->
+                <div class="glass-card webcam-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-video"></i> Camera Feed</h3>
+                        <div class="cam-controls">
+                            <button class="btn btn-primary btn-sm" id="btnStartGesture"
+                                onclick="startGestureDetection()">
+                                <i class="fas fa-play"></i> Start
+                            </button>
+                            <button class="btn btn-ghost btn-sm" id="btnStopGesture" onclick="stopGestureDetection()">
+                                <i class="fas fa-stop"></i> Stop
+                            </button>
+                        </div>
+                    </div>
+                    <div class="webcam-container">
+                        <video id="gestureVideo" class="webcam-video" autoplay playsinline></video>
+                        <canvas id="gestureCanvas" class="webcam-canvas"></canvas>
+                        <div class="webcam-overlay" id="webcamOverlay">
+                            <i class="fas fa-hand-paper"></i>
+                            <p>Click Start to begin gesture detection</p>
+                        </div>
+                    </div>
+                    <div class="gesture-status" id="gestureStatus">
+                        <span class="dot off"></span> Gesture detection inactive
+                    </div>
+                </div>
+
+                <!-- Gesture Guide -->
+                <div class="glass-card gesture-guide">
+                    <div class="card-header">
+                        <h3><i class="fas fa-book-open"></i> Gesture Commands</h3>
+                    </div>
+                    <div class="gesture-list">
+                        <div class="gesture-item" id="gestureNext">
+                            <div class="gesture-emoji">🖐️</div>
+                            <div class="gesture-info">
+                                <h4>Open Palm</h4>
+                                <p>Navigate to <strong>Next</strong> section</p>
+                            </div>
+                            <div class="gesture-indicator"><span class="dot off"></span></div>
+                        </div>
+                        <div class="gesture-item" id="gesturePause">
+                            <div class="gesture-emoji">✊</div>
+                            <div class="gesture-info">
+                                <h4>Fist</h4>
+                                <p><strong>Pause</strong> / Stop current action</p>
+                            </div>
+                            <div class="gesture-indicator"><span class="dot off"></span></div>
+                        </div>
+                        <div class="gesture-item" id="gestureRepeat">
+                            <div class="gesture-emoji">✌️</div>
+                            <div class="gesture-info">
+                                <h4>Two Fingers</h4>
+                                <p><strong>Repeat</strong> last action</p>
+                            </div>
+                            <div class="gesture-indicator"><span class="dot off"></span></div>
+                        </div>
+                    </div>
+                    <div class="gesture-log">
+                        <h4><i class="fas fa-list"></i> Recent Gestures</h4>
+                        <div id="gestureLog" class="log-area">
+                            <p class="log-placeholder">No gestures detected yet...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Voice Command Section ===== -->
+    <section class="section" id="voice-section">
+        <div class="container">
+            <div class="voice-layout">
+                <!-- Voice Control Card -->
+                <div class="glass-card voice-control-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-headset"></i> Voice Control</h3>
+                    </div>
+                    <div class="voice-center">
+                        <button class="voice-orb" id="voiceCommandBtn" onclick="toggleVoiceCommands()">
+                            <i class="fas fa-microphone"></i>
+                            <div class="orb-ring"></div>
+                            <div class="orb-ring delay-1"></div>
+                            <div class="orb-ring delay-2"></div>
+                        </button>
+                        <p class="voice-status" id="voiceCommandStatus">Click to start listening</p>
+                    </div>
+                    <div class="voice-transcript-box" id="voiceCommandTranscript">
+                        <p class="placeholder-text">Voice commands will appear here...</p>
+                    </div>
+                </div>
+
+                <!-- Command Guide -->
+                <div class="glass-card command-guide">
+                    <div class="card-header">
+                        <h3><i class="fas fa-terminal"></i> Available Commands</h3>
+                    </div>
+                    <div class="command-list">
+                        <div class="command-item">
+                            <div class="command-word">"Summarize"</div>
+                            <p>Summarize the current input text</p>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-word">"Read"</div>
+                            <p>Read the output text aloud</p>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-word">"Next"</div>
+                            <p>Scroll to the next section</p>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-word">"Stop"</div>
+                            <p>Stop speech / pause actions</p>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-word">"Repeat"</div>
+                            <p>Repeat the last action</p>
+                        </div>
+                    </div>
+                    <div class="command-log">
+                        <h4><i class="fas fa-history"></i> Command History</h4>
+                        <div id="commandLog" class="log-area">
+                            <p class="log-placeholder">No commands recognized yet...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Adaptive UI Settings ===== -->
+    <section class="section" id="settings-section">
+        <div class="container">
+            <div class="settings-grid">
+                <div class="glass-card setting-card">
+                    <h4><i class="fas fa-adjust"></i> High Contrast</h4>
+                    <p>Yellow text on black for maximum readability</p>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggleContrast" onchange="toggleHighContrast()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="glass-card setting-card">
+                    <h4><i class="fas fa-text-height"></i> Large Text</h4>
+                    <p>Increase all font sizes for easier reading</p>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggleLargeText" onchange="toggleLargeText()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="glass-card setting-card">
+                    <h4><i class="fas fa-tachometer-alt"></i> Voice Speed</h4>
+                    <p>Adjust text-to-speech reading speed</p>
+                    <div class="speed-slider-wrap">
+                        <input type="range" id="voiceSpeedSlider" class="speed-slider" min="0.5" max="2" step="0.1"
+                            value="1" oninput="updateVoiceSpeed(this.value)">
+                        <span class="speed-label" id="speedLabel">1×</span>
+                    </div>
+                </div>
+                <div class="glass-card setting-card">
+                    <h4><i class="fas fa-exchange-alt"></i> Change Profile</h4>
+                    <p>Switch to a different accessibility mode</p>
+                    <button class="btn btn-primary btn-sm" onclick="showProfileModal()">
+                        <i class="fas fa-user-cog"></i> Change
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== ISL Placeholder (Future Scope) ===== -->
+    <section class="section" id="isl-section">
+        <div class="container">
+            <div class="glass-card isl-card">
+                <div class="isl-content">
+                    <div class="isl-icon">🤟</div>
+                    <h2>Indian Sign Language (ISL) Integration</h2>
+                    <p>A future module for real-time ISL recognition and translation using a trained deep
+                        learning model.</p>
+                    <div class="isl-features">
+                        <div class="isl-feature">
+                            <i class="fas fa-camera"></i>
+                            <span>Webcam-based ISL detection</span>
+                        </div>
+                        <div class="isl-feature">
+                            <i class="fas fa-language"></i>
+                            <span>Sign-to-text translation</span>
+                        </div>
+                        <div class="isl-feature">
+                            <i class="fas fa-brain"></i>
+                            <span>TensorFlow.js model integration</span>
+                        </div>
+                    </div>
+                    <div class="isl-placeholder-box">
+                        <code>// ISL Model Placeholder<br>
+                        // When a trained ISL model (.tflite or tfjs) is available,<br>
+                        // load it here using tf.loadLayersModel('model/isl/model.json')<br>
+                        // and feed webcam frames for real-time sign recognition.<br>
+                        // Output: recognized sign → text → TTS</code>
+                    </div>
+                    <span class="badge-coming-soon">Coming Soon</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Footer ===== -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="logo-icon">✨</span> Adapt<span>Ed</span>
+                </div>
+                <div class="footer-links">
+                    <a href="#workspace">Workspace</a>
+                    <a href="#gesture-section">Gestures</a>
+                    <a href="#voice-section">Voice</a>
+                    <a href="#settings-section">Settings</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 AdaptEd</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ===== Toast Notification Container ===== -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- ===== Scripts ===== -->
+    <script src="accessibilityEngine.js"></script>
+    <script src="speech.js"></script>
+    <script src="gesture.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

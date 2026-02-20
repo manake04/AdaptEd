@@ -9,13 +9,7 @@
         content="A professional accessibility platform featuring Speech-to-Text, Text-to-Speech, Adaptive UI, Voice Navigation, Eye Tracking, AI Summarizer, and Auto Captioning.">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- MediaPipe Hands for Gesture Recognition -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
-        crossorigin="anonymous"></script>
-    <!-- WebGazer for Eye Tracking -->
-    <script src="https://webgazer.cs.brown.edu/webgazer.js?" defer></script>
+    <!-- MediaPipe + WebGazer loaded in body (before script.js) to avoid duplicate loading -->
 </head>
 
 <body>
@@ -25,6 +19,52 @@
         <div class="orb"></div>
         <div class="orb"></div>
         <div class="orb"></div>
+    </div>
+
+    <!-- ===== Profile Selector Modal ===== -->
+    <div id="profileModal" class="modal-overlay"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;">
+        <div class="modal-content"
+            style="background:var(--bg-card); padding:40px; border-radius:20px; max-width:800px; width:90%; text-align:center; box-shadow:0 0 50px rgba(0,0,0,0.5); border:1px solid var(--border-glass);">
+            <h2
+                style="font-size:2.5rem; margin-bottom:20px; background:var(--accent-gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
+                Select Your Accessibility Mode</h2>
+            <p style="margin-bottom:40px; font-size:1.2rem; color:var(--text-secondary);">We adapt the experience based
+                on your needs.</p>
+
+            <div class="profile-grid"
+                style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:20px;">
+                <button class="profile-btn" onclick="selectProfile('hearing')"
+                    style="padding:30px; border-radius:15px; background:rgba(255,255,255,0.05); border:1px solid var(--border-glass); transition:all 0.3s; cursor:pointer;">
+                    <i class="fas fa-deaf" style="font-size:3rem; margin-bottom:15px; color:#fd79a8;"></i>
+                    <h3 style="color:var(--text-primary);">Hearing Impaired</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); margin-top:10px;">Enables captions & summaries
+                    </p>
+                </button>
+
+                <button class="profile-btn" onclick="selectProfile('visual')"
+                    style="padding:30px; border-radius:15px; background:rgba(255,255,255,0.05); border:1px solid var(--border-glass); transition:all 0.3s; cursor:pointer;">
+                    <i class="fas fa-blind" style="font-size:3rem; margin-bottom:15px; color:#74b9ff;"></i>
+                    <h3 style="color:var(--text-primary);">Visually Impaired</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); margin-top:10px;">Enables TTS & Voice Nav</p>
+                </button>
+
+                <button class="profile-btn" onclick="selectProfile('motor')"
+                    style="padding:30px; border-radius:15px; background:rgba(255,255,255,0.05); border:1px solid var(--border-glass); transition:all 0.3s; cursor:pointer;">
+                    <i class="fas fa-wheelchair" style="font-size:3rem; margin-bottom:15px; color:#55efc4;"></i>
+                    <h3 style="color:var(--text-primary);">Motor Impaired</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); margin-top:10px;">Enables Eye Tracking &
+                        Gestures</p>
+                </button>
+
+                <button class="profile-btn" onclick="selectProfile('normal')"
+                    style="padding:30px; border-radius:15px; background:rgba(255,255,255,0.05); border:1px solid var(--border-glass); transition:all 0.3s; cursor:pointer;">
+                    <i class="fas fa-user" style="font-size:3rem; margin-bottom:15px; color:#a29bfe;"></i>
+                    <h3 style="color:var(--text-primary);">Normal Mode</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); margin-top:10px;">Standard experience</p>
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- ===== Navigation ===== -->
@@ -361,19 +401,25 @@
                             <span class="check"
                                 style="background: rgba(255,234,167,0.15); color: var(--color-voice);"><i
                                     class="fas fa-check"></i></span>
-                            Natural language voice commands
+                            Scroll, navigate sections, and control the page by voice
                         </li>
                         <li>
                             <span class="check"
                                 style="background: rgba(255,234,167,0.15); color: var(--color-voice);"><i
                                     class="fas fa-check"></i></span>
-                            Navigate to any section by saying its name
+                            Switch to voice dictation, read page aloud, or toggle captions
                         </li>
                         <li>
                             <span class="check"
                                 style="background: rgba(255,234,167,0.15); color: var(--color-voice);"><i
                                     class="fas fa-check"></i></span>
-                            Scroll up, down, and jump to top or bottom
+                            Change font size, theme, and navigate elements by voice
+                        </li>
+                        <li>
+                            <span class="check"
+                                style="background: rgba(255,234,167,0.15); color: var(--color-voice);"><i
+                                    class="fas fa-check"></i></span>
+                            Press <kbd>Alt+V</kbd> to activate voice nav from anywhere
                         </li>
                     </ul>
                 </div>
@@ -382,17 +428,22 @@
                         <span class="dot"></span><span class="dot"></span><span class="dot"></span>
                         <span>voice_navigation.js</span>
                     </div>
-                    <p class="voice-status" id="voiceNavStatus">Click to activate voice navigation</p>
-                    <button class="voice-btn" id="voiceNavBtn" aria-label="Start voice navigation">
+                    <p class="voice-status" id="voiceNavStatus" aria-live="assertive" role="status">Click to activate
+                        voice navigation (or press Alt+V)</p>
+                    <button class="voice-btn" id="voiceNavBtn" aria-label="Start voice navigation — shortcut Alt+V">
                         <i class="fas fa-microphone-alt"></i>
                     </button>
                     <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; text-align: center;">
-                        Available commands:</p>
+                        Available commands: (say "help" for full list)</p>
                     <div class="voice-commands">
+                        <div class="voice-cmd"><span class="cmd-key">"Scroll Up / Down"</span></div>
                         <div class="voice-cmd"><span class="cmd-key">"Go to [Section Name]"</span></div>
-                        <div class="voice-cmd"><span class="cmd-key">"Scroll Down / Up"</span></div>
-                        <div class="voice-cmd"><span class="cmd-key">"Go to Top / Bottom"</span></div>
-                        <div class="voice-cmd"><span class="cmd-key">"Stop Listening"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Start Dictation"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Read Page"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Dark Mode / Light Mode"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Increase Font / Decrease Font"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Next / Previous / Click"</span></div>
+                        <div class="voice-cmd"><span class="cmd-key">"Help" — lists all commands</span></div>
                     </div>
                 </div>
             </div>
@@ -737,6 +788,31 @@
             </div>
         </div>
     </div>
+
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <!-- WebGazer -->
+    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+
+    <!-- Application Modules -->
+    <script type="module">
+        import { AccessibilityEngine } from './js/accessibilityEngine.js';
+
+        window.selectProfile = (profile) => {
+            AccessibilityEngine.setProfile(profile);
+            document.getElementById('profileModal').style.display = 'none';
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            AccessibilityEngine.init();
+        });
+    </script>
 
     <script src="script.js"></script>
 </body>
